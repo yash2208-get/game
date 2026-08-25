@@ -1,0 +1,30 @@
+{
+  "name": "nexora/platform-api",
+  "type": "project",
+  "description": "Nexora skill gaming platform API",
+  "require": {
+    "php": "^8.3",
+    "laravel/framework": "^12.0",
+    "laravel/sanctum": "^4.0",
+    "laravel/tinker": "^2.10",
+    "filament/filament": "^3.2"
+  },
+  "require-dev": {
+    "fakerphp/faker": "^1.24",
+    "laravel/pint": "^1.18",
+    "mockery/mockery": "^1.6",
+    "nunomaduro/collision": "^8.6",
+    "phpunit/phpunit": "^11.4"
+  },
+  "autoload": {
+    "psr-4": { "App\\": "app/", "Database\\Factories\\": "database/factories/", "Database\\Seeders\\": "database/seeders/" }
+  },
+  "scripts": {
+    "post-autoload-dump": ["Illuminate\\Foundation\\ComposerScripts::postAutoloadDump", "@php artisan package:discover --ansi"],
+    "dev": ["Composer\\Config::disableProcessTimeout", "npx concurrently -c \"#a78bfa,#60a5fa\" \"php artisan serve --host=0.0.0.0\" \"php artisan queue:listen --tries=1\""],
+    "test": ["@php artisan config:clear --ansi", "@php artisan test"]
+  },
+  "extra": { "laravel": { "dont-discover": [] } },
+  "minimum-stability": "stable",
+  "prefer-stable": true
+}

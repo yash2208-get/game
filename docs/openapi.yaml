@@ -1,0 +1,147 @@
+openapi: 3.0.3
+info:
+  title: Nexora Skill Gaming API
+  version: 1.0.0
+  description: Laravel 12 REST API for authentication, games, tournaments and wallet operations.
+servers:
+  - url: http://localhost:8000/api/v1
+security:
+  - sanctum: []
+paths:
+  /auth/register:
+    post:
+      security: []
+      summary: Create an account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201': { description: Account created }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /auth/login:
+    post:
+      security: []
+      summary: Sign in and receive a Sanctum token
+      responses:
+        '200': { description: Authenticated }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /auth/me:
+    get:
+      summary: Return the current user and wallet
+      responses:
+        '200': { $ref: '#/components/responses/Envelope' }
+  /dashboard:
+    get:
+      summary: Dashboard aggregates
+      responses:
+        '200': { $ref: '#/components/responses/Envelope' }
+  /games:
+    get:
+      security: []
+      summary: Browse active games
+      parameters:
+        - { in: query, name: category, schema: { type: string } }
+        - { in: query, name: page, schema: { type: integer, minimum: 1 } }
+      responses:
+        '200': { $ref: '#/components/responses/Envelope' }
+  /games/{slug}/rooms:
+    post:
+      summary: Create a public or private game room
+      parameters:
+        - { in: path, name: slug, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [visibility]
+              properties:
+                visibility: { type: string, enum: [public, private] }
+                settings: { type: object }
+      responses:
+        '201': { description: Room created }
+  /tournaments:
+    get:
+      security: []
+      summary: List tournaments and entry counts
+      responses:
+        '200': { $ref: '#/components/responses/Envelope' }
+  /tournaments/{id}/join:
+    post:
+      summary: Enter a tournament
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: integer } }
+      responses:
+        '200': { description: Entry confirmed }
+        '422': { description: Tournament closed or duplicate entry }
+  /wallet:
+    get:
+      summary: Current wallet balances
+      responses:
+        '200': { $ref: '#/components/responses/Envelope' }
+  /wallet/deposits/intent:
+    post:
+      summary: Create a payment-provider deposit intent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount]
+              properties:
+                amount: { type: number, minimum: 50 }
+      responses:
+        '200': { description: Idempotent payment intent }
+  /wallet/withdrawals:
+    post:
+      summary: Request a winning-wallet withdrawal
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount, method]
+              properties:
+                amount: { type: number, minimum: 100 }
+                method: { type: string, enum: [upi, bank] }
+      responses:
+        '200': { description: Withdrawal queued }
+components:
+  securitySchemes:
+    sanctum:
+      type: http
+      scheme: bearer
+      bearerFormat: token
+  schemas:
+    RegisterRequest:
+      type: object
+      required: [name, email, password, password_confirmation]
+      properties:
+        name: { type: string, maxLength: 80 }
+        email: { type: string, format: email }
+        phone: { type: string }
+        password: { type: string, format: password, minLength: 8 }
+        password_confirmation: { type: string, format: password }
+    Envelope:
+      type: object
+      properties:
+        data: { type: object }
+  responses:
+    Envelope:
+      description: Successful response envelope
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Envelope' }
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message: { type: string }
+              errors: { type: object }
