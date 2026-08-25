@@ -1,0 +1,82 @@
+services:
+  frontend:
+    build: .
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_URL: http://localhost:8000
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: nexora
+      DB_USERNAME: nexora
+      DB_PASSWORD: secret
+      REDIS_HOST: redis
+      CACHE_STORE: redis
+      QUEUE_CONNECTION: redis
+    ports:
+      - "8000:8000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    command: sh -c "php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8000"
+    restart: unless-stopped
+
+  queue:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      APP_ENV: production
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: nexora
+      DB_USERNAME: nexora
+      DB_PASSWORD: secret
+      REDIS_HOST: redis
+      QUEUE_CONNECTION: redis
+    depends_on:
+      - api
+      - redis
+    command: php artisan queue:work --sleep=3 --tries=3 --timeout=90
+    restart: unless-stopped
+
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: nexora
+      MYSQL_USER: nexora
+      MYSQL_PASSWORD: secret
+      MYSQL_ROOT_PASSWORD: root-secret
+    volumes:
+      - mysql-data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot-secret"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+
+volumes:
+  mysql-data:
+  redis-data:
